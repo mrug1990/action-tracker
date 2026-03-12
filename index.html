@@ -1,0 +1,723 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Action Tracker">
+<title>Action Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0B0D13;
+    --surface: #14171F;
+    --surface-hover: #1C2029;
+    --accent: #7B6FEE;
+    --accent-glow: rgba(123, 111, 238, 0.15);
+    --accent-soft: rgba(123, 111, 238, 0.08);
+    --green: #34D399;
+    --green-glow: rgba(52, 211, 153, 0.12);
+    --red: #EF6461;
+    --red-glow: rgba(239, 100, 97, 0.14);
+    --amber: #FBBF24;
+    --amber-glow: rgba(251, 191, 36, 0.12);
+    --text: #E4E5EB;
+    --text-muted: #7E829A;
+    --text-dim: #4A4E64;
+    --border: rgba(255,255,255,0.05);
+    --border-active: rgba(123, 111, 238, 0.25);
+  }
+
+- { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+body {
+background: var(–bg);
+color: var(–text);
+font-family: ‘DM Sans’, -apple-system, sans-serif;
+min-height: 100vh;
+min-height: 100dvh;
+overflow-x: hidden;
+-webkit-text-size-adjust: 100%;
+}
+
+@keyframes pulseRing {
+0% { transform: scale(1); opacity: 0.5; }
+100% { transform: scale(1.7); opacity: 0; }
+}
+@keyframes fadeSlideIn {
+from { opacity: 0; transform: translateY(-6px); }
+to { opacity: 1; transform: translateY(0); }
+}
+@keyframes subtlePulse {
+0%, 100% { opacity: 1; }
+50% { opacity: 0.4; }
+}
+@keyframes breathe {
+0%, 100% { box-shadow: 0 0 20px var(–red-glow); }
+50% { box-shadow: 0 0 40px var(–red-glow), 0 0 60px rgba(239,100,97,0.06); }
+}
+@keyframes spin {
+to { transform: rotate(360deg); }
+}
+
+.header {
+padding: calc(env(safe-area-inset-top, 12px) + 12px) 20px 14px;
+border-bottom: 1px solid var(–border);
+position: sticky; top: 0; z-index: 10;
+background: var(–bg);
+}
+.header-row { display: flex; align-items: center; gap: 10px; margin-bottom: 3px; }
+.live-dot {
+width: 7px; height: 7px; border-radius: 50%;
+background: var(–text-dim); transition: all 0.4s ease; flex-shrink: 0;
+}
+.live-dot.active {
+background: var(–red); box-shadow: 0 0 8px var(–red);
+animation: subtlePulse 1.5s ease-in-out infinite;
+}
+.header h1 {
+font-size: 20px; font-weight: 700; letter-spacing: -0.03em;
+background: linear-gradient(135deg, #E4E5EB 30%, #7E829A);
+-webkit-background-clip: text; -webkit-text-fill-color: transparent;
+}
+.status { font-size: 13px; color: var(–text-muted); padding-left: 17px; min-height: 18px; }
+.status .dot { animation: subtlePulse 1s infinite; }
+
+.setup-banner {
+margin: 16px 20px; padding: 16px 18px; border-radius: 14px;
+background: var(–surface); border: 1px solid var(–border-active);
+animation: fadeSlideIn 0.3s ease;
+}
+.setup-banner p { font-size: 13px; color: var(–text-muted); line-height: 1.5; margin-bottom: 12px; }
+.setup-banner a { color: var(–accent); }
+.api-input-row { display: flex; gap: 8px; }
+.api-input {
+flex: 1; padding: 10px 14px; border-radius: 10px;
+border: 1px solid var(–border); background: var(–bg);
+color: var(–text); font-size: 14px; font-family: ‘JetBrains Mono’, monospace;
+outline: none; transition: border 0.2s;
+}
+.api-input:focus { border-color: var(–border-active); }
+.api-input::placeholder { color: var(–text-dim); }
+.btn-save-key {
+padding: 10px 18px; border-radius: 10px; border: none;
+background: var(–accent); color: #fff; font-size: 13px;
+font-weight: 600; cursor: pointer; font-family: inherit; white-space: nowrap;
+}
+.key-saved {
+font-size: 12px; color: var(–green); margin-top: 8px;
+display: flex; align-items: center; gap: 6px;
+}
+.key-saved button {
+background: none; border: none; color: var(–accent);
+cursor: pointer; font-family: inherit; font-size: 12px;
+}
+
+.safari-info {
+margin: 12px 20px 0; padding: 12px 14px; border-radius: 12px;
+background: var(–amber-glow); border: 1px solid rgba(251,191,36,0.15);
+font-size: 12px; color: var(–amber); line-height: 1.5;
+display: none;
+}
+.safari-info.show { display: block; animation: fadeSlideIn 0.3s ease; }
+
+.mic-area {
+display: flex; flex-direction: column; align-items: center;
+padding: 28px 0 20px; gap: 14px;
+}
+.mic-row { display: flex; align-items: center; gap: 14px; }
+.mic-btn {
+position: relative; width: 80px; height: 80px; border-radius: 50%;
+border: 2px solid var(–border); background: var(–surface);
+cursor: pointer; display: flex; align-items: center; justify-content: center;
+transition: all 0.3s ease; -webkit-user-select: none;
+}
+.mic-btn.active {
+border-color: var(–red); background: var(–red-glow);
+animation: breathe 2.5s ease-in-out infinite;
+}
+.mic-btn .pulse-ring {
+position: absolute; inset: -7px; border-radius: 50%;
+border: 2px solid var(–red);
+animation: pulseRing 1.8s ease-out infinite;
+pointer-events: none;
+}
+.mic-hint { font-size: 12px; color: var(–text-dim); margin-top: 2px; }
+.analyze-btn {
+padding: 10px 18px; border-radius: 12px;
+border: 1px solid var(–border-active); background: var(–accent-soft);
+color: var(–accent); font-size: 13px; font-weight: 600;
+cursor: pointer; font-family: inherit;
+animation: fadeSlideIn 0.2s ease;
+}
+.analyze-btn:disabled { opacity: 0.4; cursor: default; }
+
+.transcript-toggle {
+background: none; border: none; color: var(–text-dim);
+font-size: 12px; cursor: pointer; font-family: inherit;
+display: flex; align-items: center; gap: 6px;
+padding: 0 20px 4px;
+}
+.transcript-toggle .arrow {
+display: inline-block; transition: transform 0.2s; font-size: 10px;
+}
+.transcript-toggle .arrow.open { transform: rotate(90deg); }
+.transcript-box {
+margin: 6px 20px 16px; padding: 14px; border-radius: 12px;
+background: var(–surface); border: 1px solid var(–border);
+font-size: 13px; color: var(–text-muted); line-height: 1.6;
+max-height: 140px; overflow-y: auto;
+font-family: ‘JetBrains Mono’, monospace;
+animation: fadeSlideIn 0.2s ease;
+-webkit-overflow-scrolling: touch;
+}
+.transcript-box .interim { color: var(–text-dim); font-style: italic; }
+
+.processing-bar {
+margin: 0 20px 12px; padding: 10px 14px; border-radius: 10px;
+background: var(–accent-soft); border: 1px solid var(–border-active);
+font-size: 12px; color: var(–accent); font-weight: 500;
+display: none; align-items: center; gap: 8px;
+animation: fadeSlideIn 0.2s ease;
+}
+.processing-bar.show { display: flex; }
+.spinner {
+width: 14px; height: 14px; border: 2px solid var(–border-active);
+border-top-color: var(–accent); border-radius: 50%;
+animation: spin 0.8s linear infinite; flex-shrink: 0;
+}
+
+.filters { display: flex; gap: 4px; padding: 0 20px 14px; flex-wrap: wrap; }
+.filter-btn {
+padding: 7px 14px; border-radius: 20px;
+border: 1px solid var(–border); background: transparent;
+color: var(–text-muted); font-size: 12px; font-weight: 500;
+cursor: pointer; font-family: inherit; transition: all 0.2s;
+}
+.filter-btn.active {
+border-color: var(–border-active); background: var(–accent-soft); color: var(–accent);
+}
+.filter-btn.clear { margin-left: auto; color: var(–text-dim); }
+
+.task-list { padding: 0 20px 160px; }
+.empty-state {
+text-align: center; padding: 48px 20px;
+color: var(–text-dim); font-size: 14px; line-height: 1.6;
+}
+.task-item {
+display: flex; align-items: flex-start; gap: 12px;
+padding: 14px 0; border-bottom: 1px solid var(–border);
+animation: fadeSlideIn 0.3s ease backwards;
+}
+.checkbox {
+flex-shrink: 0; width: 26px; height: 26px; border-radius: 8px;
+border: 2px solid var(–text-dim); background: transparent;
+cursor: pointer; display: flex; align-items: center; justify-content: center;
+color: var(–green); margin-top: 1px; transition: all 0.2s ease;
+}
+.checkbox.checked { border-color: var(–green); background: var(–green-glow); }
+.task-content { flex: 1; min-width: 0; }
+.task-text {
+font-size: 15px; line-height: 1.5; font-weight: 400;
+color: var(–text); transition: all 0.2s;
+}
+.task-text.done { color: var(–text-dim); text-decoration: line-through; }
+.task-time { font-size: 11px; color: var(–text-dim); margin-top: 2px; }
+.delete-btn {
+flex-shrink: 0; background: none; border: none;
+color: var(–text-dim); cursor: pointer; padding: 6px;
+border-radius: 8px; opacity: 0.3; transition: opacity 0.2s; margin-top: 1px;
+}
+.delete-btn:active { opacity: 1; }
+
+.bottom-bar {
+position: fixed; bottom: 0; left: 0; right: 0;
+padding: 12px 20px calc(12px + env(safe-area-inset-bottom, 16px));
+background: linear-gradient(180deg, transparent 0%, var(–bg) 28%);
+}
+.add-row { display: flex; gap: 8px; animation: fadeSlideIn 0.2s ease; }
+.add-input {
+flex: 1; padding: 14px 16px; border-radius: 12px;
+border: 1px solid var(–border-active); background: var(–surface);
+color: var(–text); font-size: 16px; font-family: inherit; outline: none;
+}
+.add-input::placeholder { color: var(–text-dim); }
+.btn-add {
+padding: 14px 20px; border-radius: 12px; border: none;
+background: var(–accent); color: #fff; font-size: 14px;
+font-weight: 600; cursor: pointer; font-family: inherit;
+}
+.btn-cancel {
+padding: 14px; border-radius: 12px;
+border: 1px solid var(–border); background: var(–surface);
+color: var(–text-muted); font-size: 14px; cursor: pointer; font-family: inherit;
+}
+.btn-manual {
+width: 100%; padding: 16px; border-radius: 14px;
+border: 1px dashed var(–border); background: var(–surface);
+color: var(–text-muted); font-size: 14px; cursor: pointer;
+font-family: inherit; transition: all 0.2s;
+}
+</style>
+
+</head>
+<body>
+
+<div class="header">
+  <div class="header-row">
+    <div class="live-dot" id="liveDot"></div>
+    <h1>Action Tracker</h1>
+  </div>
+  <div class="status" id="statusMsg">Set up your API key below to get started</div>
+</div>
+
+<div class="setup-banner" id="setupBanner">
+  <p>
+    Paste your Claude API key to power AI action-item detection.
+    Get one at <a href="https://console.anthropic.com/" target="_blank">console.anthropic.com</a>. Your key stays on this device only.
+  </p>
+  <div class="api-input-row" id="apiRow">
+    <input type="password" class="api-input" id="apiKeyInput" placeholder="sk-ant-..." autocomplete="off" autocorrect="off" autocapitalize="off">
+    <button class="btn-save-key" id="btnSaveKey">Save</button>
+  </div>
+  <div class="key-saved" id="keySavedMsg" style="display:none">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+    Key saved · <button onclick="clearApiKey()">Change key</button>
+  </div>
+</div>
+
+<div class="safari-info" id="safariInfo">
+  <strong>Safari mic tip:</strong> Safari listens in short bursts and auto-restarts between pauses. Just keep talking naturally — brief flickers between restarts are normal.
+</div>
+
+<div class="mic-area">
+  <div class="mic-row">
+    <button class="mic-btn" id="micBtn" onclick="toggleListening()">
+      <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="var(--text)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+        <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+        <line x1="12" y1="19" x2="12" y2="23"/>
+        <line x1="8" y1="23" x2="16" y2="23"/>
+      </svg>
+    </button>
+    <button class="analyze-btn" id="analyzeBtn" onclick="manualProcess()" style="display:none">Analyze Now</button>
+  </div>
+  <div class="mic-hint" id="micHint">Tap to start listening</div>
+</div>
+
+<div id="transcriptSection" style="display:none">
+  <button class="transcript-toggle" onclick="toggleTranscript()">
+    <span class="arrow" id="transcriptArrow">▶</span> Live Transcript
+  </button>
+  <div class="transcript-box" id="transcriptBox" style="display:none"></div>
+</div>
+
+<div class="processing-bar" id="processingBar">
+  <div class="spinner"></div>
+  <span>Analyzing transcript for action items...</span>
+</div>
+
+<div class="filters" id="filters" style="display:none">
+  <button class="filter-btn active" data-filter="active" onclick="setFilter('active')">To Do (<span id="activeCount">0</span>)</button>
+  <button class="filter-btn" data-filter="done" onclick="setFilter('done')">Done (<span id="doneCount">0</span>)</button>
+  <button class="filter-btn" data-filter="all" onclick="setFilter('all')">All</button>
+  <button class="filter-btn clear" id="clearDoneBtn" onclick="clearDone()" style="display:none">Clear Done</button>
+</div>
+
+<div class="task-list" id="taskList">
+  <div class="empty-state">No action items yet. Start a meeting and I'll capture them.</div>
+</div>
+
+<div class="bottom-bar">
+  <div id="manualAddArea">
+    <button class="btn-manual" id="btnManual" onclick="openManualAdd()">+ Add item manually</button>
+    <div class="add-row" id="addRow" style="display:none">
+      <input class="add-input" id="addInput" placeholder="Add an action item..." onkeydown="if(event.key==='Enter')submitManual()">
+      <button class="btn-add" onclick="submitManual()">Add</button>
+      <button class="btn-cancel" onclick="closeManualAdd()">&#10005;</button>
+    </div>
+  </div>
+</div>
+
+<script>
+var listening = false;
+var recognition = null;
+var tasks = [];
+var filter = 'active';
+var transcriptText = '';
+var transcriptBuffer = '';
+var processInterval = null;
+var processing = false;
+var showTranscript = false;
+var apiKey = '';
+var intentionallyStopped = false;
+
+var isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent) ||
+  (/iPad|iPhone|iPod/.test(navigator.userAgent));
+
+function init() {
+  apiKey = localStorage.getItem('action_tracker_api_key') || '';
+  tasks = JSON.parse(localStorage.getItem('action_tracker_tasks') || '[]');
+  if (apiKey) {
+    document.getElementById('apiRow').style.display = 'none';
+    document.querySelector('#setupBanner p').style.display = 'none';
+    document.getElementById('keySavedMsg').style.display = 'flex';
+    setStatus('Tap the mic to start listening');
+  }
+  renderTasks();
+}
+
+document.getElementById('btnSaveKey').onclick = function() {
+  var key = document.getElementById('apiKeyInput').value.trim();
+  if (!key) return;
+  apiKey = key;
+  localStorage.setItem('action_tracker_api_key', key);
+  document.getElementById('apiRow').style.display = 'none';
+  document.querySelector('#setupBanner p').style.display = 'none';
+  document.getElementById('keySavedMsg').style.display = 'flex';
+  setStatus('Tap the mic to start listening');
+};
+
+function clearApiKey() {
+  apiKey = '';
+  localStorage.removeItem('action_tracker_api_key');
+  document.getElementById('apiKeyInput').value = '';
+  document.getElementById('apiRow').style.display = 'flex';
+  document.querySelector('#setupBanner p').style.display = 'block';
+  document.getElementById('keySavedMsg').style.display = 'none';
+}
+
+function setStatus(msg, pulsing) {
+  document.getElementById('statusMsg').innerHTML = msg + (pulsing ? ' <span class="dot">&bull;</span>' : '');
+}
+
+function createRecognition() {
+  var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) return null;
+  var r = new SR();
+  if (isSafari) {
+    r.continuous = false;
+    r.interimResults = false;
+  } else {
+    r.continuous = true;
+    r.interimResults = true;
+  }
+  r.lang = 'en-US';
+  r.maxAlternatives = 1;
+
+  r.onresult = function(event) {
+    var finalText = '';
+    var interim = '';
+    for (var i = event.resultIndex; i < event.results.length; i++) {
+      var t = event.results[i][0].transcript;
+      if (event.results[i].isFinal) {
+        finalText += t + ' ';
+      } else {
+        interim = t;
+      }
+    }
+    if (finalText) {
+      transcriptBuffer += finalText;
+      transcriptText += finalText;
+      updateTranscriptBox('');
+    }
+    if (interim) updateTranscriptBox(interim);
+  };
+
+  r.onerror = function(event) {
+    if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
+      setStatus('Mic access denied. Check Safari Settings for this website.');
+      listening = false;
+      intentionallyStopped = true;
+      updateMicUI();
+    }
+  };
+
+  r.onend = function() {
+    if (listening && !intentionallyStopped) {
+      setTimeout(function() {
+        try {
+          var newR = createRecognition();
+          if (newR) { recognition = newR; recognition.start(); }
+        } catch(e) {
+          setTimeout(function() {
+            if (listening && !intentionallyStopped) {
+              try {
+                var retry = createRecognition();
+                if (retry) { recognition = retry; retry.start(); }
+              } catch(e2) {}
+            }
+          }, 1000);
+        }
+      }, isSafari ? 250 : 50);
+    }
+  };
+
+  return r;
+}
+
+function toggleListening() {
+  if (!apiKey) {
+    setStatus('Please save your API key first');
+    document.getElementById('apiKeyInput').focus();
+    return;
+  }
+  listening ? stopListening() : startListening();
+}
+
+function startListening() {
+  var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) { setStatus('Speech recognition not supported in this browser.'); return; }
+
+  intentionallyStopped = false;
+  transcriptBuffer = '';
+  recognition = createRecognition();
+  if (!recognition) return;
+
+  try { recognition.start(); } catch(e) {
+    setStatus('Could not start mic. Reload and try again.');
+    return;
+  }
+
+  listening = true;
+  updateMicUI();
+
+  if (isSafari) {
+    setStatus('Listening... (auto-restarts between pauses)');
+    document.getElementById('safariInfo').classList.add('show');
+    document.getElementById('micHint').textContent = 'Listening in Safari mode';
+  } else {
+    setStatus('Listening... speak naturally');
+    document.getElementById('micHint').textContent = 'Tap to stop';
+  }
+
+  document.getElementById('transcriptSection').style.display = 'block';
+  processInterval = setInterval(function() {
+    if (transcriptBuffer.trim().length > 15) processBuffer();
+  }, 25000);
+
+  requestWakeLock();
+}
+
+function stopListening() {
+  intentionallyStopped = true;
+  listening = false;
+  if (recognition) { try { recognition.abort(); } catch(e) {} recognition = null; }
+  clearInterval(processInterval);
+  updateMicUI();
+  document.getElementById('safariInfo').classList.remove('show');
+  document.getElementById('micHint').textContent = 'Tap to start listening';
+  releaseWakeLock();
+
+  if (transcriptBuffer.trim().length > 15) {
+    processBuffer().then(function() { setStatus('Session ended. Tap mic to start again.'); });
+  } else {
+    setStatus('Session ended. Tap mic to start again.');
+  }
+}
+
+function updateMicUI() {
+  var btn = document.getElementById('micBtn');
+  var dot = document.getElementById('liveDot');
+  var analyze = document.getElementById('analyzeBtn');
+  if (listening) {
+    btn.classList.add('active');
+    btn.innerHTML = '<span class="pulse-ring"></span>' +
+      '<svg width="30" height="30" viewBox="0 0 24 24" fill="var(--red)" stroke="var(--red)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
+      '<path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>' +
+      '<path d="M19 10v2a7 7 0 0 1-14 0v-2"/>' +
+      '<line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>';
+    dot.classList.add('active');
+    analyze.style.display = 'inline-block';
+  } else {
+    btn.classList.remove('active');
+    btn.innerHTML =
+      '<svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="var(--text)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
+      '<path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>' +
+      '<path d="M19 10v2a7 7 0 0 1-14 0v-2"/>' +
+      '<line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>';
+    dot.classList.remove('active');
+    analyze.style.display = 'none';
+  }
+}
+
+function toggleTranscript() {
+  showTranscript = !showTranscript;
+  document.getElementById('transcriptBox').style.display = showTranscript ? 'block' : 'none';
+  document.getElementById('transcriptArrow').classList.toggle('open', showTranscript);
+  if (showTranscript) updateTranscriptBox('');
+}
+
+function updateTranscriptBox(interim) {
+  if (!showTranscript) return;
+  var box = document.getElementById('transcriptBox');
+  box.innerHTML = escapeHtml(transcriptText.slice(-400)) +
+    (interim ? '<span class="interim"> ' + escapeHtml(interim) + '</span>' : '');
+  box.scrollTop = box.scrollHeight;
+}
+
+async function processBuffer() {
+  var buffer = transcriptBuffer.trim();
+  if (!buffer || buffer.length < 15 || processing) return;
+  processing = true;
+  document.getElementById('processingBar').classList.add('show');
+  setStatus('Analyzing transcript...', true);
+  transcriptBuffer = '';
+
+  try {
+    var response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        system: 'You extract action items from meeting transcripts. Return ONLY a JSON array of strings. Focus on commitments, tasks, follow-ups, and deadlines. If none found, return []. No markdown, no backticks, no explanation. Keep items concise (under 15 words). Write as imperative tasks: "Send report to Sarah by Friday".',
+        messages: [{ role: 'user', content: 'Extract action items:\n\n"' + buffer + '"' }]
+      })
+    });
+
+    var data = await response.json();
+    if (data.error) {
+      setStatus('API error: ' + (data.error.message || 'Check your key'));
+      processing = false;
+      document.getElementById('processingBar').classList.remove('show');
+      return;
+    }
+
+    var text = (data.content || []).map(function(i) { return i.text || ''; }).join('');
+    var clean = text.replace(/```json|```/g, '').trim();
+    var items = [];
+    try { items = JSON.parse(clean); } catch(e) {}
+
+    if (items.length > 0) {
+      var now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      items.forEach(function(t) {
+        tasks.unshift({ id: Date.now() + Math.random(), text: t, done: false, createdAt: now });
+      });
+      saveTasks(); renderTasks();
+      setStatus('Found ' + items.length + ' action item' + (items.length > 1 ? 's' : '') + '!');
+    } else {
+      setStatus(listening ? 'Listening... no new action items detected' : 'No action items found');
+    }
+  } catch (e) {
+    setStatus('Error connecting to API. Check your connection.');
+  }
+  processing = false;
+  document.getElementById('processingBar').classList.remove('show');
+}
+
+function manualProcess() {
+  if (transcriptBuffer.trim().length > 5) processBuffer();
+  else setStatus('Not enough speech captured yet. Keep talking!');
+}
+
+function saveTasks() { localStorage.setItem('action_tracker_tasks', JSON.stringify(tasks)); }
+
+function toggleTask(id) {
+  tasks = tasks.map(function(t) { return t.id === id ? Object.assign({}, t, { done: !t.done }) : t; });
+  saveTasks(); renderTasks();
+}
+
+function deleteTask(id) {
+  tasks = tasks.filter(function(t) { return t.id !== id; });
+  saveTasks(); renderTasks();
+}
+
+function clearDone() {
+  tasks = tasks.filter(function(t) { return !t.done; });
+  saveTasks(); renderTasks();
+}
+
+function setFilter(f) {
+  filter = f;
+  document.querySelectorAll('.filter-btn[data-filter]').forEach(function(btn) {
+    btn.classList.toggle('active', btn.dataset.filter === f);
+  });
+  renderTasks();
+}
+
+function renderTasks() {
+  var list = document.getElementById('taskList');
+  var filtersEl = document.getElementById('filters');
+  var activeCount = tasks.filter(function(t) { return !t.done; }).length;
+  var doneCount = tasks.filter(function(t) { return t.done; }).length;
+  document.getElementById('activeCount').textContent = activeCount;
+  document.getElementById('doneCount').textContent = doneCount;
+  document.getElementById('clearDoneBtn').style.display = doneCount > 0 ? 'inline-block' : 'none';
+
+  if (tasks.length === 0) {
+    filtersEl.style.display = 'none';
+    list.innerHTML = '<div class="empty-state">No action items yet. Start a meeting and I\'ll capture them.</div>';
+    return;
+  }
+  filtersEl.style.display = 'flex';
+  var filtered = tasks.filter(function(t) {
+    if (filter === 'active') return !t.done;
+    if (filter === 'done') return t.done;
+    return true;
+  });
+  if (filtered.length === 0) {
+    list.innerHTML = '<div class="empty-state">' + (filter === 'active' ? 'All caught up!' : 'No completed items yet.') + '</div>';
+    return;
+  }
+  list.innerHTML = filtered.map(function(task, i) {
+    return '<div class="task-item" style="animation-delay:' + (i * 0.03) + 's">' +
+      '<button class="checkbox ' + (task.done ? 'checked' : '') + '" onclick="toggleTask(' + task.id + ')">' +
+        (task.done ? '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>' : '') +
+      '</button>' +
+      '<div class="task-content">' +
+        '<div class="task-text ' + (task.done ? 'done' : '') + '">' + escapeHtml(task.text) + '</div>' +
+        '<div class="task-time">' + task.createdAt + '</div>' +
+      '</div>' +
+      '<button class="delete-btn" onclick="deleteTask(' + task.id + ')">' +
+        '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>' +
+      '</button></div>';
+  }).join('');
+}
+
+function openManualAdd() {
+  document.getElementById('btnManual').style.display = 'none';
+  document.getElementById('addRow').style.display = 'flex';
+  document.getElementById('addInput').focus();
+}
+function closeManualAdd() {
+  document.getElementById('btnManual').style.display = 'block';
+  document.getElementById('addRow').style.display = 'none';
+  document.getElementById('addInput').value = '';
+}
+function submitManual() {
+  var input = document.getElementById('addInput');
+  var text = input.value.trim();
+  if (!text) return;
+  var now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  tasks.unshift({ id: Date.now() + Math.random(), text: text, done: false, createdAt: now });
+  saveTasks(); renderTasks();
+  input.value = '';
+  closeManualAdd();
+}
+
+function escapeHtml(str) {
+  var div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+var wakeLock = null;
+async function requestWakeLock() {
+  try { if ('wakeLock' in navigator) { wakeLock = await navigator.wakeLock.request('screen'); } } catch(e) {}
+}
+function releaseWakeLock() { if (wakeLock) { wakeLock.release(); wakeLock = null; } }
+
+init();
+</script>
+
+</body>
+</html>
